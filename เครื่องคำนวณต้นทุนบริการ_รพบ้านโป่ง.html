@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เครื่องคำนวณต้นทุนบริการ — โรงพยาบาลบ้านโป่ง</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F4F1EC;
+  --surface: #FFFDF8;
+  --surface2: #EDE9E0;
+  --border: #C8C2B4;
+  --border-light: #DDD8CE;
+  --text: #1A1714;
+  --text-muted: #6B6560;
+  --text-faint: #9E9890;
+  --accent: #1C4F8A;
+  --accent-light: #E8EFF8;
+  --accent-mid: #3A72B8;
+  --red: #B03A2E;
+  --red-light: #FAEAE8;
+  --orange: #A05000;
+  --orange-light: #FDF0E6;
+  --green: #1E6B3C;
+  --green-light: #E8F5EE;
+  --gold: #7A5C00;
+  --gold-light: #FBF5E0;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.05);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6;min-height:100vh}
+
+/* Header */
+.header{background:var(--accent);color:#fff;padding:1.5rem 2rem;display:flex;align-items:center;gap:1.25rem;border-bottom:3px solid #162F52}
+.header-logo{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.header-title{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.header-sub{font-size:13px;opacity:.75;margin-top:1px}
+.header-badge{margin-left:auto;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:4px 12px;font-size:12px;font-family:'IBM Plex Mono',monospace}
+
+/* Layout */
+.container{max-width:900px;margin:0 auto;padding:2rem 1.5rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border-light);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;box-shadow:var(--shadow-sm)}
+.card-title{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.card-title::before{content:'';display:inline-block;width:3px;height:14px;border-radius:2px}
+.card-title.lc::before{background:#3A72B8}
+.card-title.mc::before{background:#1E6B3C}
+.card-title.cc::before{background:#7A5C00}
+.card-title.res::before{background:#B03A2E}
+
+/* Service selector */
+.selector-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.25rem;box-shadow:var(--shadow)}
+.selector-card h2{font-size:15px;font-weight:600;color:var(--text);margin-bottom:1rem}
+
+/* Form elements */
+label{font-size:13px;font-weight:500;color:var(--text-muted);display:block;margin-bottom:5px}
+select,input[type=number],input[type=text]{
+  width:100%;padding:9px 12px;
+  border:1px solid var(--border);border-radius:var(--radius);
+  font-size:14px;font-family:'Sarabun',sans-serif;
+  color:var(--text);background:var(--surface);
+  transition:border-color .15s,box-shadow .15s
+}
+select:focus,input:focus{outline:none;border-color:var(--accent-mid);box-shadow:0 0 0 3px rgba(58,114,184,.12)}
+.field{margin-bottom:.875rem}
+
+/* Service row */
+.svc-row{background:var(--surface2);border:1px solid var(--border-light);border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:.625rem;display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap}
+.svc-row .f2{flex:2;min-width:160px}
+.svc-row .f1{flex:1;min-width:110px}
+.svc-row .f05{flex:.5;min-width:80px}
+.svc-row .f-del{flex:0;padding-bottom:1px}
+
+/* Buttons */
+.btn{font-family:'Sarabun',sans-serif;cursor:pointer;border-radius:var(--radius);font-size:13px;font-weight:500;transition:all .15s;border:1px solid var(--border);padding:8px 16px;background:var(--surface);color:var(--text)}
+.btn:hover{background:var(--surface2);border-color:var(--border)}
+.btn-add{color:var(--accent);border-color:var(--accent-light);background:var(--accent-light);font-size:13px;padding:7px 14px}
+.btn-add:hover{background:#D6E4F4;border-color:#B8CDE8}
+.btn-del{color:var(--text-faint);border-color:var(--border-light);background:transparent;font-size:12px;padding:6px 10px}
+.btn-del:hover{color:var(--red);border-color:var(--red)}
+.btn-ai{background:var(--accent);color:#fff;border-color:var(--accent);padding:9px 20px;font-size:14px;font-weight:600;width:100%;margin-top:.75rem;border-radius:var(--radius)}
+.btn-ai:hover{background:#162F52;border-color:#162F52}
+.btn-ai:disabled{opacity:.5;cursor:not-allowed}
+.btn-export{background:var(--green);color:#fff;border-color:var(--green);padding:9px 20px;font-size:14px;font-weight:600}
+.btn-export:hover{background:#155230}
+
+/* Result metrics */
+.results-wrap{background:var(--text);border-radius:var(--radius-lg);padding:1.5rem;margin-top:1.25rem;color:#fff}
+.results-title{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:1rem}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:.875rem}
+.metric{background:rgba(255,255,255,.07);border-radius:var(--radius);padding:.875rem 1rem;border:1px solid rgba(255,255,255,.1)}
+.metric.span2{grid-column:span 2}
+.metric .mlabel{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px;letter-spacing:.03em}
+.metric .mval{font-size:22px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:-.01em}
+.metric.hi{background:rgba(58,114,184,.3);border-color:rgba(58,114,184,.5)}
+.metric.hi .mval{color:#7FB3F0}
+.metric.ref-metric .mval{font-size:18px;color:rgba(255,255,255,.7)}
+
+/* Diff badge */
+.diff-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;margin-left:8px}
+.diff-high{background:var(--red-light);color:var(--red)}
+.diff-mid{background:var(--orange-light);color:var(--orange)}
+.diff-ok{background:var(--green-light);color:var(--green)}
+
+/* Service info banner */
+.svc-info{background:var(--accent-light);border:1px solid #C0D4EC;border-radius:var(--radius);padding:.75rem 1rem;margin-top:.75rem;font-size:13px;line-height:1.7;display:none}
+.svc-info.show{display:block}
+
+/* AI status */
+.ai-status{font-size:13px;color:var(--text-muted);margin-top:.625rem;padding:.625rem .875rem;background:var(--gold-light);border:1px solid #DDD0A0;border-radius:var(--radius);display:none}
+.ai-status.show{display:block}
+
+/* Spinner */
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Section spacing */
+.section{margin-bottom:1.25rem}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.625rem}
+
+/* Formula bar */
+.formula{font-size:12px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;background:var(--surface2);border:1px solid var(--border-light);border-radius:var(--radius);padding:.5rem .875rem;margin-top:.875rem}
+
+/* Footer */
+.footer{text-align:center;padding:2rem;font-size:12px;color:var(--text-faint);border-top:1px solid var(--border-light);margin-top:2rem}
+
+/* Empty state */
+.empty{font-size:13px;color:var(--text-faint);padding:.5rem 0 .75rem;font-style:italic}
+
+/* Print */
+@media print{.btn,.btn-ai,.btn-export,.btn-del{display:none!important}.header{print-color-adjust:exact}}
+
+/* Responsive */
+@media(max-width:640px){
+  .metrics-grid{grid-template-columns:1fr 1fr}
+  .metric.span2{grid-column:span 1}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .header{padding:1rem}
+  .container{padding:1rem}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">🏥</div>
+  <div>
+    <div class="header-title">เครื่องคำนวณต้นทุนบริการ (Unit Cost)</div>
+    <div class="header-sub">โรงพยาบาลบ้านโป่ง จังหวัดราชบุรี — 32 รายการที่สูงกว่าราคากลาง ปี 2568</div>
+  </div>
+  <div class="header-badge">ABC Costing v1.0</div>
+</div>
+
+<div class="container">
+
+  <!-- Service selector -->
+  <div class="selector-card">
+    <h2>เลือกรายการบริการ</h2>
+    <div class="grid2">
+      <div>
+        <div class="field">
+          <label>รายการบริการ (32 รายการสูงกว่าราคากลาง)</label>
+          <select id="svc-select" onchange="onSelectService()">
+            <option value="">-- เลือกรายการ --</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>ระยะเวลาให้บริการ (นาที)</label>
+          <input type="number" id="svc-min" value="30" min="1" oninput="renderLC();calcAll()">
+        </div>
+        <div class="field">
+          <label>ปริมาณงาน/ปี (ครั้ง)</label>
+          <input type="number" id="cc-vol" value="100" min="1" oninput="calcAll()">
+        </div>
+      </div>
+    </div>
+
+    <div class="svc-info" id="svc-info"></div>
+
+    <button class="btn btn-ai" id="ai-btn" onclick="runAI()" disabled>
+      เลือกรายการเพื่อโหลดข้อมูลต้นทุน
+    </button>
+    <div class="ai-status" id="ai-status"></div>
+  </div>
+
+  <!-- LC -->
+  <div class="section card">
+    <div class="card-title lc">ค่าแรง (Labor Cost — LC)
+      <span style="font-size:11px;font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">อัตรา × เวลา × จำนวนคน</span>
+    </div>
+    <div id="lc-list"><p class="empty">เลือกรายการบริการด้านบนเพื่อโหลดข้อมูล</p></div>
+    <button class="btn btn-add" onclick="addLC()" style="margin-top:.25rem">+ เพิ่มบุคลากร</button>
+    <div style="font-size:12px;color:var(--text-faint);margin-top:.625rem;line-height:1.7">
+      อัตราค่าแรงมาตรฐาน รพ.ชุมชน สธ. ปี 2568 = (เงินเดือน + เบี้ยต่างๆ) ÷ 230 วัน ÷ 7.5 ชม. ÷ 60 นาที
+    </div>
+  </div>
+
+  <!-- MC -->
+  <div class="section card">
+    <div class="card-title mc">วัสดุสิ้นเปลือง + เวชภัณฑ์ (Material Cost — MC)
+      <span style="font-size:11px;font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">ราคา/หน่วย × จำนวนที่ใช้</span>
+    </div>
+    <div id="mc-list"><p class="empty">เลือกรายการบริการด้านบนเพื่อโหลดข้อมูล</p></div>
+    <button class="btn btn-add" onclick="addMC()" style="margin-top:.25rem">+ เพิ่มวัสดุ/เวชภัณฑ์</button>
+  </div>
+
+  <!-- CC -->
+  <div class="section card">
+    <div class="card-title cc">ค่าลงทุน (Capital Cost — CC)
+      <span style="font-size:11px;font-weight:400;color:var(--text-faint);text-transform:none;letter-spacing:0">เสื่อมราคาครุภัณฑ์ + สิ่งก่อสร้าง ÷ ปริมาณงาน</span>
+    </div>
+    <div class="grid3" style="margin-bottom:.875rem">
+      <div class="field">
+        <label>ขนาดห้อง (ตร.ม.)</label>
+        <input type="number" id="cc-room" value="0" min="0" oninput="calcAll()">
+      </div>
+      <div class="field">
+        <label>ต้นทุนก่อสร้าง/ตร.ม./ปี (บาท)</label>
+        <input type="number" id="cc-bldg" value="800" oninput="calcAll()">
+      </div>
+      <div class="field" style="opacity:.4;pointer-events:none">
+        <label>ปริมาณงาน/ปี</label>
+        <input type="number" value="" id="cc-vol-display" readonly style="background:var(--surface2)">
+      </div>
+    </div>
+    <div id="cc-list"></div>
+    <button class="btn btn-add" onclick="addCC()" style="margin-top:.25rem">+ เพิ่มครุภัณฑ์</button>
+    <div style="font-size:12px;color:var(--text-faint);margin-top:.625rem;line-height:1.7">
+      ค่าเสื่อมราคาครุภัณฑ์ = ราคาซื้อ × 1.06 (maintenance 6%) ÷ อายุการใช้งาน (ปี) ÷ ปริมาณงาน/ปี
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-wrap">
+    <div class="results-title">ผลการคำนวณ (Price Model)</div>
+    <div class="metrics-grid">
+      <div class="metric">
+        <div class="mlabel">LC — ค่าแรง</div>
+        <div class="mval" id="r-lc">0.00</div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">MC — วัสดุ</div>
+        <div class="mval" id="r-mc">0.00</div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">CC — ค่าลงทุน</div>
+        <div class="mval" id="r-cc">0.00</div>
+      </div>
+      <div class="metric">
+        <div class="mlabel">Indirect Cost (20%)</div>
+        <div class="mval" id="r-ic">0.00</div>
+      </div>
+      <div class="metric span2">
+        <div class="mlabel">Direct Cost (LC+MC+CC)</div>
+        <div class="mval" id="r-dc">0.00</div>
+      </div>
+      <div class="metric hi span2">
+        <div class="mlabel">▶ Price Model (ต้นทุนรวม)</div>
+        <div class="mval" id="r-pm">0.00</div>
+      </div>
+    </div>
+    <div class="metrics-grid" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="metric ref-metric">
+        <div class="mlabel">ราคากลาง สธ. (บาท)</div>
+        <div class="mval" id="r-ref">—</div>
+      </div>
+      <div class="metric ref-metric">
+        <div class="mlabel">ราคา รพ. ปัจจุบัน (บาท)</div>
+        <div class="mval" id="r-cur">—</div>
+      </div>
+      <div class="metric ref-metric">
+        <div class="mlabel">Price Model vs ราคากลาง</div>
+        <div class="mval" id="r-diff">—</div>
+      </div>
+    </div>
+    <div class="formula">
+      Direct Cost = LC + MC + CC &nbsp;|&nbsp; Indirect Cost = DC × 20% &nbsp;|&nbsp; Price Model = DC + Indirect Cost
+    </div>
+  </div>
+
+  <!-- Export -->
+  <div style="display:flex;gap:.75rem;margin-top:1.25rem;flex-wrap:wrap">
+    <button class="btn btn-export" onclick="exportResult()">⬇ บันทึกผลลัพธ์ (CSV)</button>
+    <button class="btn" onclick="window.print()">🖨 พิมพ์</button>
+    <button class="btn" onclick="resetAll()">↺ เริ่มใหม่</button>
+  </div>
+
+</div>
+
+<div class="footer">
+  เครื่องคำนวณต้นทุนบริการสาธารณสุข (Activity Based Costing) — โรงพยาบาลบ้านโป่ง จังหวัดราชบุรี<br>
+  อ้างอิง: ประกาศกระทรวงสาธารณสุข เรื่อง อัตราค่าบริการสาธารณสุข พ.ศ. 2568 | กองบริหารการสาธารณสุข
+</div>
+
+<script>
+const SERVICES = [
+  {code:"L01143",name:"Lymphocyte crossmatch panel (T,B cell) ทั้งผู้ให้และผู้รับอวัยวะ",unit:"Test",ref:2700,cur:13300,min:120,dept:"ธนาคารเลือด",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1}],
+   mc:[{name:"Reagent anti-human globulin",price:350,qty:1},{name:"Complement serum",price:200,qty:1},{name:"Cell suspension kit",price:180,qty:1}],
+   cc:[{name:"Flow cytometer",price:2500000,life:10},{name:"Centrifuge",price:80000,life:10}],room:20,vol:50},
+  {code:"L01155",name:"Stem Cell Processing for Bone Marrow Collection",unit:"ครั้ง",ref:4000,cur:7500,min:240,dept:"ธนาคารเลือด",
+   lc:[{prof:"แพทย์ทั่วไป",rate:5.2,count:1},{prof:"พยาบาลวิชาชีพ ระดับ 7-8",rate:3.2,count:1}],
+   mc:[{name:"Stem cell processing bag",price:1200,qty:1},{name:"DMSO cryoprotectant",price:500,qty:1},{name:"IV set/consumables",price:150,qty:2}],
+   cc:[{name:"Laminar flow hood",price:350000,life:10},{name:"Cell counter",price:120000,life:7}],room:20,vol:20},
+  {code:"L02016",name:"Heinz body",unit:"Test",ref:65,cur:120,min:20,dept:"โลหิตวิทยา",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1}],
+   mc:[{name:"Crystal violet stain",price:5,qty:0.1},{name:"Microscope slide",price:2,qty:2}],
+   cc:[{name:"กล้องจุลทรรศน์",price:120000,life:10}],room:15,vol:200},
+  {code:"L05026",name:"Carbamazepine (Tegretol)",unit:"Test",ref:450,cur:600,min:30,dept:"เคมีคลินิก",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1}],
+   mc:[{name:"Carbamazepine reagent kit",price:300,qty:1}],
+   cc:[{name:"Chemistry analyzer",price:1800000,life:10}],room:30,vol:500},
+  {code:"L05072",name:"Marijuana (Cannabinoid) วิธี immunoassay",unit:"Test",ref:150,cur:180,min:15,dept:"เคมีคลินิก",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1}],
+   mc:[{name:"Cannabinoid immunoassay reagent",price:80,qty:1}],
+   cc:[{name:"Immunoassay analyzer",price:900000,life:10}],room:20,vol:300},
+  {code:"L05077",name:"Morphine confirm test",unit:"Test",ref:700,cur:1800,min:60,dept:"เคมีคลินิก",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1}],
+   mc:[{name:"GC-MS reagent set",price:600,qty:1},{name:"Internal standard solution",price:200,qty:0.5}],
+   cc:[{name:"GC-MS instrument",price:3500000,life:10}],room:25,vol:100},
+  {code:"L05078",name:"Neuro-specific enolase",unit:"Test",ref:800,cur:840,min:30,dept:"เคมีคลินิก",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1}],
+   mc:[{name:"NSE ELISA kit",price:550,qty:1}],
+   cc:[{name:"ELISA reader",price:280000,life:10}],room:20,vol:200},
+  {code:"L05113",name:"Thyroid hormone T3",unit:"Test",ref:200,cur:300,min:20,dept:"เคมีคลินิก",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1}],
+   mc:[{name:"T3 reagent",price:120,qty:1}],
+   cc:[{name:"Immunoassay analyzer",price:900000,life:10}],room:20,vol:800},
+  {code:"G01012",name:"เครื่องช่วยกระบวนการปั๊มและฟื้นคืนชีพ (LUCAS)",unit:"ครั้ง",ref:320,cur:900,min:60,dept:"ตรวจรักษาทั่วไป",
+   lc:[{prof:"แพทย์ทั่วไป",rate:5.2,count:1},{prof:"พยาบาลวิชาชีพ ระดับ 7-8",rate:3.2,count:2}],
+   mc:[{name:"CPR pads/consumables",price:150,qty:1}],
+   cc:[{name:"LUCAS device",price:250000,life:7}],room:20,vol:50},
+  {code:"G01026",name:"การเปิดหลอดเลือดดำ (cut down)",unit:"ครั้ง",ref:1000,cur:2000,min:45,dept:"ตรวจรักษาทั่วไป",
+   lc:[{prof:"แพทย์ทั่วไป",rate:5.2,count:1},{prof:"พยาบาลวิชาชีพ ระดับ 7-8",rate:3.2,count:1}],
+   mc:[{name:"Cut down set",price:350,qty:1},{name:"IV catheter",price:80,qty:1},{name:"Suture",price:40,qty:2}],
+   cc:[{name:"Minor procedure set",price:15000,life:5}],room:15,vol:100},
+  {code:"G01039",name:"I&D ทางตา/ข้าง",unit:"ครั้ง",ref:200,cur:300,min:20,dept:"ตรวจรักษาทั่วไป",
+   lc:[{prof:"แพทย์ทั่วไป",rate:5.2,count:1}],
+   mc:[{name:"Sterile drape",price:30,qty:1},{name:"Syringe/needle",price:15,qty:2},{name:"Dressing set",price:25,qty:1}],
+   cc:[{name:"Eye examination lamp",price:45000,life:10}],room:10,vol:200},
+  {code:"G01048",name:"ค่าอาหารทางสายยาง",unit:"วัน",ref:200,cur:300,min:15,dept:"ตรวจรักษาทั่วไป",
+   lc:[{prof:"พยาบาลวิชาชีพ ระดับ 5-6",rate:2.6,count:1}],
+   mc:[{name:"Enteral formula 500ml",price:120,qty:1},{name:"NG feeding set",price:35,qty:0.1}],
+   cc:[],room:5,vol:500},
+  {code:"G01055",name:"ค่าถอดสายสวนปัสสาวะ",unit:"ครั้ง",ref:70,cur:100,min:10,dept:"ตรวจรักษาทั่วไป",
+   lc:[{prof:"พยาบาลวิชาชีพ ระดับ 5-6",rate:2.6,count:1}],
+   mc:[{name:"Gloves sterile",price:8,qty:1},{name:"Dressing set",price:15,qty:1}],
+   cc:[],room:5,vol:500},
+  {code:"G01069",name:"ค่าบริการเตียงสามัญ",unit:"วันนอน",ref:220,cur:400,min:10,dept:"ตรวจรักษาทั่วไป",
+   lc:[{prof:"พยาบาลวิชาชีพ ระดับ 5-6",rate:2.6,count:0.5}],
+   mc:[{name:"Linen/consumables",price:50,qty:1}],
+   cc:[{name:"เตียงผู้ป่วย",price:18000,life:10}],room:10,vol:365},
+  {code:"G02037",name:"Long leg posterior slab",unit:"ครั้ง",ref:1000,cur:1100,min:30,dept:"ออร์โธปิดิกส์",
+   lc:[{prof:"พยาบาลวิชาชีพ ระดับ 5-6",rate:2.6,count:1}],
+   mc:[{name:"Plaster of Paris 6 inch",price:80,qty:3},{name:"Stockinette",price:25,qty:1},{name:"Webril cotton",price:40,qty:2}],
+   cc:[{name:"Cast cutter",price:18000,life:7}],room:15,vol:200},
+  {code:"I06003",name:"Transthoracic Echocardiography",unit:"ครั้ง",ref:1900,cur:2000,min:30,dept:"โรคหัวใจ",
+   lc:[{prof:"แพทย์เชี่ยวชาญ ระดับ 9+",rate:8.5,count:1},{prof:"พยาบาลวิชาชีพ ระดับ 5-6",rate:2.6,count:1}],
+   mc:[{name:"Echo gel",price:5,qty:1},{name:"ECG electrode",price:10,qty:3}],
+   cc:[{name:"Echocardiography machine",price:3500000,life:10}],room:20,vol:1000},
+  {code:"I10003",name:"Bronchial Brush",unit:"ครั้ง",ref:250,cur:2550,min:20,dept:"ตรวจส่องกล้อง",
+   lc:[{prof:"แพทย์เชี่ยวชาญ ระดับ 9+",rate:8.5,count:1},{prof:"พยาบาลวิชาชีพ ระดับ 7-8",rate:3.2,count:1}],
+   mc:[{name:"Bronchial brush (disposable)",price:800,qty:1},{name:"Specimen container",price:30,qty:2},{name:"Lidocaine spray",price:50,qty:1}],
+   cc:[{name:"Flexible bronchoscope",price:800000,life:7},{name:"Light source processor",price:350000,life:10}],room:25,vol:100},
+  {code:"I10006",name:"Bronchoalveolar Lavage (BAL)",unit:"ครั้ง",ref:150,cur:2450,min:30,dept:"ตรวจส่องกล้อง",
+   lc:[{prof:"แพทย์เชี่ยวชาญ ระดับ 9+",rate:8.5,count:1},{prof:"พยาบาลวิชาชีพ ระดับ 7-8",rate:3.2,count:1}],
+   mc:[{name:"NSS 0.9% 20ml",price:8,qty:5},{name:"Suction trap",price:120,qty:1},{name:"Lidocaine 2%",price:25,qty:2}],
+   cc:[{name:"Flexible bronchoscope",price:800000,life:7},{name:"Light source processor",price:350000,life:10}],room:25,vol:150},
+  {code:"I10007",name:"Bronchoalveolar Wash",unit:"ครั้ง",ref:150,cur:2450,min:25,dept:"ตรวจส่องกล้อง",
+   lc:[{prof:"แพทย์เชี่ยวชาญ ระดับ 9+",rate:8.5,count:1},{prof:"พยาบาลวิชาชีพ ระดับ 7-8",rate:3.2,count:1}],
+   mc:[{name:"NSS 0.9% 20ml",price:8,qty:3},{name:"Suction trap",price:120,qty:1},{name:"Lidocaine 2%",price:25,qty:2}],
+   cc:[{name:"Flexible bronchoscope",price:800000,life:7},{name:"Light source processor",price:350000,life:10}],room:25,vol:150},
+  {code:"D01042",name:"Alveolar fracture closed reduction (local anesthesia)",unit:"ครั้ง",ref:1100,cur:2000,min:45,dept:"ศัลยศาสตร์ช่องปาก",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Lidocaine 2% carpule",price:25,qty:2},{name:"Arch bar wire",price:80,qty:1},{name:"Suture 3-0",price:35,qty:2}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"X-ray unit",price:120000,life:10}],room:15,vol:100},
+  {code:"D03004",name:"Pulpotomy ฟันถาวร",unit:"ซี่",ref:1400,cur:2000,min:45,dept:"เอนโดดอนต์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Formocresol",price:30,qty:0.5},{name:"ZOE cement",price:45,qty:1},{name:"Endodontic file set",price:80,qty:0.2}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"Endomotor",price:35000,life:7}],room:12,vol:200},
+  {code:"D03011",name:"Internal root repair of perforation defects",unit:"ราก",ref:1800,cur:2000,min:60,dept:"เอนโดดอนต์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"MTA cement",price:350,qty:0.5},{name:"Endodontic file",price:80,qty:0.3},{name:"Irrigation solution",price:30,qty:2}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"Dental microscope",price:450000,life:10}],room:12,vol:80},
+  {code:"D05002",name:"Full metal crown รวมพิมพ์ปากและทำโมเดล",unit:"ซี่",ref:3200,cur:12000,min:60,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Impression material",price:120,qty:1},{name:"Metal alloy",price:2500,qty:1},{name:"Dental cement",price:50,qty:1}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"Lab equipment",price:80000,life:10}],room:12,vol:150},
+  {code:"D05003",name:"Full porcelain crown รวมพิมพ์ปากและทำโมเดล",unit:"ซี่",ref:3200,cur:12000,min:60,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Impression material",price:120,qty:1},{name:"Porcelain-fused alloy",price:3200,qty:1},{name:"Dental cement",price:50,qty:1}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"CAD/CAM unit",price:1200000,life:10}],room:12,vol:200},
+  {code:"D05004",name:"Full zirconia crown รวมพิมพ์ปากและทำโมเดล",unit:"ซี่",ref:3200,cur:12000,min:60,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Impression material",price:120,qty:1},{name:"Zirconia block",price:3800,qty:1},{name:"Dental cement",price:50,qty:1}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"CAD/CAM unit",price:1200000,life:10}],room:12,vol:200},
+  {code:"D05005",name:"Cantilever bridge รวมพิมพ์ปากและทำโมเดล",unit:"ชิ้น",ref:3500,cur:12000,min:90,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Impression material",price:150,qty:1},{name:"Bridge alloy",price:4500,qty:1},{name:"Dental cement",price:50,qty:1}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"Lab equipment",price:80000,life:10}],room:12,vol:100},
+  {code:"D05011",name:"Post & core ด้วย pin สำเร็จรูปและ composite core",unit:"ราก",ref:1900,cur:2200,min:45,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Prefabricated post",price:250,qty:1},{name:"Composite resin",price:180,qty:1},{name:"Bonding agent",price:80,qty:0.5}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"Curing light",price:15000,life:5}],room:12,vol:200},
+  {code:"D05012",name:"Post & core ด้วย coping/Casted pin รวมพิมพ์ปาก",unit:"ราก",ref:1900,cur:2200,min:60,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Impression material",price:120,qty:1},{name:"Casted post alloy",price:350,qty:1},{name:"Luting cement",price:60,qty:1}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"Lab equipment",price:80000,life:10}],room:12,vol:150},
+  {code:"D05013",name:"ครอบฟันชั่วคราว (ฉุกเฉิน) in-house lab",unit:"ซี่",ref:800,cur:1000,min:30,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Acrylic resin",price:80,qty:1},{name:"Temporary cement",price:20,qty:1}],
+   cc:[{name:"Dental unit",price:250000,life:15}],room:12,vol:300},
+  {code:"D05015",name:"รื้อสะพานฟัน/ครอบฟัน/เดือยฟัน เฉพาะ abutment",unit:"ซี่",ref:950,cur:1000,min:20,dept:"ทันตกรรมประดิษฐ์",
+   lc:[{prof:"ทันตแพทย์",rate:5.8,count:1},{prof:"ผู้ช่วยพยาบาล (PN)",rate:1.6,count:1}],
+   mc:[{name:"Crown remover consumable",price:50,qty:1}],
+   cc:[{name:"Dental unit",price:250000,life:15},{name:"Crown remover tool",price:8000,life:7}],room:12,vol:200},
+  {code:"P06119",name:"Dysferin (Dysterin) immunohistochemistry",unit:"สไลด์",ref:790,cur:1550,min:90,dept:"พยาธิวิทยา",
+   lc:[{prof:"นักเทคนิคการแพทย์",rate:2.8,count:1},{prof:"แพทย์เชี่ยวชาญ ระดับ 9+",rate:8.5,count:0.3}],
+   mc:[{name:"Dysferin antibody",price:450,qty:0.3},{name:"Detection kit",price:180,qty:1},{name:"DAB chromogen",price:40,qty:1}],
+   cc:[{name:"Autostainer",price:1200000,life:10},{name:"กล้องจุลทรรศน์",price:120000,life:10}],room:25,vol:100},
+  {code:"T01010",name:"การพอกตา (แพทย์แผนไทย)",unit:"ครั้ง",ref:200,cur:250,min:20,dept:"แพทย์แผนไทย",
+   lc:[{prof:"พยาบาลวิชาชีพ ระดับ 5-6",rate:2.6,count:1}],
+   mc:[{name:"สมุนไพรพอกตา",price:40,qty:1},{name:"ผ้าก๊อซ",price:5,qty:2}],
+   cc:[{name:"อุปกรณ์แพทย์แผนไทย",price:20000,life:10}],room:10,vol:300},
+];
+
+const LC_RATES = {
+  "แพทย์เชี่ยวชาญ ระดับ 9+":8.50,"แพทย์ทั่วไป":5.20,"ทันตแพทย์":5.80,"เภสัชกร":3.90,
+  "พยาบาลวิชาชีพ ระดับ 7-8":3.20,"พยาบาลวิชาชีพ ระดับ 5-6":2.60,
+  "นักเทคนิคการแพทย์":2.80,"นักรังสีการแพทย์":2.80,"นักกายภาพบำบัด":2.60,
+  "ผู้ช่วยพยาบาล (PN)":1.60,"พนักงานช่วยเหลือคนไข้ (NA)":1.20,"พนักงานธุรการ":1.10,
+};
+
+let lcItems=[], mcItems=[], ccItems=[], currentSvc=null;
+
+// Populate dropdown
+const sel = document.getElementById('svc-select');
+SERVICES.forEach((s,i)=>{
+  const pct = Math.round((s.cur-s.ref)/s.ref*100);
+  const o = document.createElement('option');
+  o.value = i;
+  o.textContent = `[${s.code}] ${s.name} (+${pct}%)`;
+  sel.appendChild(o);
+});
+
+function fmt(n){return parseFloat(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function onSelectService(){
+  const idx = parseInt(sel.value);
+  const btn = document.getElementById('ai-btn');
+  if(isNaN(idx)){ btn.disabled=true; btn.textContent='เลือกรายการเพื่อโหลดข้อมูลต้นทุน'; return; }
+  const s = SERVICES[idx];
+  currentSvc = s;
+  const pct = Math.round((s.cur-s.ref)/s.ref*100);
+  const cls = pct>=200?'diff-high':pct>=50?'diff-mid':'diff-ok';
+  document.getElementById('svc-info').className='svc-info show';
+  document.getElementById('svc-info').innerHTML =
+    `<b>${s.name}</b> &nbsp;|&nbsp; หน่วย: ${s.unit} &nbsp;|&nbsp; แผนก: ${s.dept}<br>
+    ราคากลาง สธ. <b>${fmt(s.ref)}</b> บาท &nbsp;|&nbsp; ราคา รพ. ปัจจุบัน <b>${fmt(s.cur)}</b> บาท
+    <span class="diff-badge ${cls}">+${pct}% สูงกว่ากลาง</span>`;
+  btn.disabled = false;
+  btn.textContent = `โหลดข้อมูลต้นทุนสำหรับ "${s.name}"`;
+  document.getElementById('r-ref').textContent = fmt(s.ref);
+  document.getElementById('r-cur').textContent = fmt(s.cur);
+}
+
+function runAI(){
+  const idx = parseInt(sel.value);
+  if(isNaN(idx)) return;
+  const s = SERVICES[idx];
+  const status = document.getElementById('ai-status');
+  const btn = document.getElementById('ai-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>กำลังโหลดข้อมูล...';
+  status.className='ai-status show';
+  status.innerHTML='<span class="spinner"></span>โหลดต้นทุนประมาณการ...';
+  setTimeout(()=>{
+    document.getElementById('svc-min').value = s.min;
+    document.getElementById('cc-vol').value = s.vol||100;
+    document.getElementById('cc-room').value = s.room||0;
+    document.getElementById('cc-vol-display').value = s.vol||100;
+    lcItems = s.lc.map(x=>({...x}));
+    mcItems = s.mc.map(x=>({...x}));
+    ccItems = s.cc.map(x=>({...x}));
+    renderAll();
+    btn.disabled = false;
+    btn.textContent = 'โหลดใหม่';
+    status.className='ai-status show';
+    status.innerHTML='โหลดข้อมูลต้นทุนประมาณการเรียบร้อยแล้ว — สามารถแก้ไขให้ตรงกับต้นทุนจริงของ รพ.บ้านโป่งได้ทุกช่อง';
+  }, 500);
+}
+
+function renderAll(){ renderLC(); renderMC(); renderCC(); }
+
+function renderLC(){
+  const el = document.getElementById('lc-list');
+  if(!lcItems.length){ el.innerHTML='<p class="empty">ยังไม่มีรายการ</p>'; calcAll(); return; }
+  const min = parseFloat(document.getElementById('svc-min').value)||0;
+  const opts = Object.keys(LC_RATES).map(k=>`<option value="${LC_RATES[k]}">${k} (${LC_RATES[k]} บ/นาที)</option>`).join('');
+  el.innerHTML = lcItems.map((it,i)=>`
+    <div class="svc-row">
+      <div class="f2"><label>วิชาชีพ</label>
+        <select onchange="lcItems[${i}].rate=parseFloat(this.value);calcAll()">
+          ${Object.keys(LC_RATES).map(k=>`<option value="${LC_RATES[k]}" ${it.rate===LC_RATES[k]?'selected':''}>${k} (${LC_RATES[k]} บ/นาที)</option>`).join('')}
+        </select></div>
+      <div class="f05"><label>จำนวน (คน)</label>
+        <input type="number" value="${it.count||1}" min="0.1" step="0.1" oninput="lcItems[${i}].count=parseFloat(this.value)||1;calcAll()"></div>
+      <div class="f05"><label>อัตรา (บ/นาที)</label>
+        <input type="number" value="${it.rate}" step="0.01" oninput="lcItems[${i}].rate=parseFloat(this.value)||0;calcAll()"></div>
+      <div class="f-del"><button class="btn btn-del" onclick="lcItems.splice(${i},1);renderLC()">ลบ</button></div>
+    </div>`).join('');
+  calcAll();
+}
+
+function renderMC(){
+  const el = document.getElementById('mc-list');
+  if(!mcItems.length){ el.innerHTML='<p class="empty">ยังไม่มีรายการ</p>'; calcAll(); return; }
+  el.innerHTML = mcItems.map((it,i)=>`
+    <div class="svc-row">
+      <div class="f2"><label>ชื่อวัสดุ/เวชภัณฑ์</label>
+        <input type="text" value="${it.name}" onchange="mcItems[${i}].name=this.value"></div>
+      <div class="f1"><label>ราคา/หน่วย (บาท)</label>
+        <input type="number" value="${it.price}" min="0" step="0.01" oninput="mcItems[${i}].price=parseFloat(this.value)||0;calcAll()"></div>
+      <div class="f05"><label>จำนวนที่ใช้</label>
+        <input type="number" value="${it.qty}" min="0" step="0.01" oninput="mcItems[${i}].qty=parseFloat(this.value)||0;calcAll()"></div>
+      <div class="f-del"><button class="btn btn-del" onclick="mcItems.splice(${i},1);renderMC()">ลบ</button></div>
+    </div>`).join('');
+  calcAll();
+}
+
+function renderCC(){
+  const el = document.getElementById('cc-list');
+  if(!ccItems.length){ el.innerHTML=''; calcAll(); return; }
+  el.innerHTML = ccItems.map((it,i)=>`
+    <div class="svc-row">
+      <div class="f2"><label>ชื่อครุภัณฑ์</label>
+        <input type="text" value="${it.name}" onchange="ccItems[${i}].name=this.value"></div>
+      <div class="f1"><label>ราคาซื้อ (บาท)</label>
+        <input type="number" value="${it.price}" min="0" oninput="ccItems[${i}].price=parseFloat(this.value)||0;calcAll()"></div>
+      <div class="f05"><label>อายุใช้งาน (ปี)</label>
+        <input type="number" value="${it.life||5}" min="1" oninput="ccItems[${i}].life=parseFloat(this.value)||5;calcAll()"></div>
+      <div class="f-del"><button class="btn btn-del" onclick="ccItems.splice(${i},1);renderCC()">ลบ</button></div>
+    </div>`).join('');
+  calcAll();
+}
+
+function addLC(){ lcItems.push({prof:"พยาบาลวิชาชีพ ระดับ 5-6",rate:2.6,count:1}); renderLC(); }
+function addMC(){ mcItems.push({name:'',price:0,qty:1}); renderMC(); }
+function addCC(){ ccItems.push({name:'',price:0,life:5}); renderCC(); }
+
+function calcAll(){
+  const min = parseFloat(document.getElementById('svc-min').value)||0;
+  const vol = parseFloat(document.getElementById('cc-vol').value)||1;
+  const room = parseFloat(document.getElementById('cc-room').value)||0;
+  const bldg = parseFloat(document.getElementById('cc-bldg').value)||800;
+  document.getElementById('cc-vol-display').value = vol;
+  let lc = lcItems.reduce((s,it)=>s+(it.rate||0)*min*(it.count||1), 0);
+  let mc = mcItems.reduce((s,it)=>s+(it.price||0)*(it.qty||0), 0);
+  let cc = (room*bldg)/vol;
+  ccItems.forEach(it=>{ cc += (it.price*(1.06))/(it.life||5)/vol; });
+  const dc=lc+mc+cc, ic=dc*.2, pm=dc+ic;
+  document.getElementById('r-lc').textContent = fmt(lc);
+  document.getElementById('r-mc').textContent = fmt(mc);
+  document.getElementById('r-cc').textContent = fmt(cc);
+  document.getElementById('r-dc').textContent = fmt(dc);
+  document.getElementById('r-ic').textContent = fmt(ic);
+  document.getElementById('r-pm').textContent = fmt(pm);
+  const refVal = currentSvc ? currentSvc.ref : null;
+  if(refVal){
+    const diff = pm - refVal;
+    const pctDiff = (diff/refVal*100);
+    const el = document.getElementById('r-diff');
+    if(diff > 0){
+      el.innerHTML = `<span style="color:#7FB3F0">+${fmt(diff)}</span>`;
+    } else {
+      el.innerHTML = `<span style="color:#6EC68A">${fmt(diff)}</span>`;
+    }
+  }
+}
+
+function resetAll(){
+  sel.value=''; currentSvc=null;
+  lcItems=[]; mcItems=[]; ccItems=[];
+  document.getElementById('svc-info').className='svc-info';
+  document.getElementById('ai-status').className='ai-status';
+  document.getElementById('svc-min').value=30;
+  document.getElementById('cc-vol').value=100;
+  document.getElementById('cc-room').value=0;
+  document.getElementById('ai-btn').disabled=true;
+  document.getElementById('ai-btn').textContent='เลือกรายการเพื่อโหลดข้อมูลต้นทุน';
+  ['r-lc','r-mc','r-cc','r-dc','r-ic','r-pm'].forEach(id=>document.getElementById(id).textContent='0.00');
+  ['r-ref','r-cur','r-diff'].forEach(id=>document.getElementById(id).textContent='—');
+  renderAll();
+}
+
+function exportResult(){
+  if(!currentSvc){ alert('กรุณาเลือกรายการก่อน'); return; }
+  const min=document.getElementById('svc-min').value;
+  const vol=document.getElementById('cc-vol').value;
+  let rows=[
+    ['รายการบริการ',currentSvc.name],
+    ['รหัส MOPH',currentSvc.code],
+    ['หน่วยนับ',currentSvc.unit],
+    ['แผนก',currentSvc.dept],
+    ['เวลาให้บริการ (นาที)',min],
+    ['ปริมาณงาน/ปี',vol],
+    ['',''],
+    ['ต้นทุน','บาท'],
+    ['LC ค่าแรง',document.getElementById('r-lc').textContent],
+    ['MC วัสดุ',document.getElementById('r-mc').textContent],
+    ['CC ค่าลงทุน',document.getElementById('r-cc').textContent],
+    ['Direct Cost',document.getElementById('r-dc').textContent],
+    ['Indirect Cost (20%)',document.getElementById('r-ic').textContent],
+    ['Price Model (ต้นทุนรวม)',document.getElementById('r-pm').textContent],
+    ['',''],
+    ['ราคากลาง สธ. (บาท)',document.getElementById('r-ref').textContent],
+    ['ราคา รพ. ปัจจุบัน (บาท)',document.getElementById('r-cur').textContent],
+  ];
+  const csv = '\uFEFF' + rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`ต้นทุน_${currentSvc.code}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+</script>
+</body>
+</html>
